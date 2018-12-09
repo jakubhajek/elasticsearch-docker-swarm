@@ -12,7 +12,7 @@ In order to run it I recommend to have at least 3 VM's provisioned. You can try 
 # Provisioning virtual machines
 Execute following command to provision servers:
 
-`docker-machine create --driver amazonec2 --amazonec2-region eu-central-1 --amazonec2-instance-type t2.medium --amazonec2-security-group my-security-group --amazonec2-open-port 9200 --amazonec2-open-port 9300 --amazonec2-open-port 2377 --amazonec2-open-port 7946 --amazonec2-open-port 4789 --amazonec2-open-port 8080 node-1`
+`docker-machine create --driver amazonec2 --amazonec2-region eu-central-1 --amazonec2-instance-type t2.medium --amazonec2-security-group swarm-sg --amazonec2-open-port 9200/tcp --amazonec2-open-port 9300/tcp --amazonec2-open-port 2377/tcp --amazonec2-open-port 7946/tcp --amazonec2-open-port 4789/udp --amazonec2-open-port 7946/udp node-1`
 
 The given command should be executed 3 times at least, make sure you change hostname every time you are executing the command,the last argument in the command.
 Please note that created AWS security group is only for demonstration purposes, you never should expose crucial ports to the internet. 
