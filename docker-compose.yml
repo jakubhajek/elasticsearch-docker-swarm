@@ -1,0 +1,76 @@
+version: "3.7"
+services:
+  coordination:
+    image: elasticsearch:6.5.2
+    environment:
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "bootstrap.memory_lock=true"
+      - "discovery.zen.minimum_master_nodes=2"
+      - "discovery.zen.ping.unicast.hosts=master"
+      - "node.master=false"
+      - "node.data=false"
+      - "node.ingest=false"
+    networks:
+       - esnet
+    ports:
+      - target: 9200
+        published: 9200
+        protocol: tcp
+        mode: host
+    deploy:
+      endpoint_mode: dnsrr
+      mode: 'global'
+      resources:
+        limits:
+          memory: 1G
+  master:
+    image: elasticsearch:6.5.2
+    environment:
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "bootstrap.memory_lock=true"
+      - "discovery.zen.minimum_master_nodes=2"
+      - "discovery.zen.ping.unicast.hosts=master"
+      - "node.master=true"
+      - "node.data=false"
+      - "node.ingest=false"
+    networks:
+       - esnet
+    deploy:
+      endpoint_mode: dnsrr
+      mode: 'replicated'
+      replicas: 2
+      resources:
+        limits:
+          memory: 1G
+  data:
+    image: elasticsearch:6.5.2
+    environment:
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "bootstrap.memory_lock=true"
+      - "discovery.zen.minimum_master_nodes=2"
+      - "discovery.zen.ping.unicast.hosts=master"
+      - "node.master=false"
+      - "node.data=true"
+      - "node.ingest=false"
+    networks:
+       - esnet
+    deploy:
+      endpoint_mode: dnsrr
+      mode: 'replicated'
+      replicas: 1
+      resources:
+        limits:
+          memory: 1G
+  visualizer:
+    image: dockersamples/visualizer
+    ports:
+      - "8080:8080"
+    stop_grace_period: 1m30s
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+networks:
+  esnet:
+    driver: overlay
