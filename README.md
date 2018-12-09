@@ -1,16 +1,16 @@
-# Initial requirementes
+# Initial requirements
 
-This is example configuration which launches *Elasticsearch Cluster* on *Docker Swarm Cluster*. The entire setup distinguish following services:
+This is example configuration which launches *Elasticsearch Cluster* on *Dock2er Swarm Cluster*. The entire setup distinguishes following services::
 
-- service with coordination Elasticsearch node role enabled which basically acts like load balnacer
+- service with coordination Elasticsearch node role enabled which basically acts like a load balnacer
 - service with Elasticsearch master eligible nodes
 - service with Elasticsearch data nodes responsible for CRUD operations
-- servive visualizer which is presenting how containers are spread accorss the Docker Swarm Cluster
+- service visualizer which is presenting how containers are spread acorss the Docker Swarm Cluster
 
 In order to run it I recommend to have at least 3 VM's provisioned. You can try AWS or even virtualbox running on your local machine. The easiest way is to setup servers using docker-machine. In this example I am using my AWS account (you can specify amazonec2-access-key and amazonec2_security_key in command line or use it ~/.aws/credentials and defined default profile) 
 
 # Provisioning virtual machines
-Execute following command to provision servers:
+Execute the following command to provision servers:
 
 `docker-machine create --driver amazonec2 --amazonec2-region eu-central-1 --amazonec2-instance-type t2.medium --amazonec2-security-group swarm-sg --amazonec2-open-port 9200/tcp --amazonec2-open-port 9300/tcp --amazonec2-open-port 2377/tcp --amazonec2-open-port 7946/tcp --amazonec2-open-port 4789/udp --amazonec2-open-port 7946/udp node-1`
 
@@ -25,10 +25,10 @@ Before running a stack, minor changes have to be adopted on each of newaly creat
 `docker-machine ssh node-11 sudo "sed -i '/ExecStart=\/usr\/bin\/dockerd/ s/$/--default-ulimit memlock=-1/' /etc/systemd/system/docker.service.d/10-machine.conf"`
 
 Please note that location of that file might be different depending of your Linux distribution. That one works with Ubuntu 16.04 LTS.
-After that execute on each of the node `systemctl daemon-reload` and restar Docker daemon `systemctl restart docker`
+After that execute on each of the node `systemctl daemon-reload` and restart Docker daemon `systemctl restart docker`
 
 # Initiating Docker Swarm cluster
-Once vm's are created you can initiate Docker swarm cluster. Export environment variables belonging to the one of the node:
+Once vm's are created you can initiate Docker swarm cluster. Export environment variables belonging to the one of the nodes:
 
 `eval $(docker-machine env node-1)`
 
@@ -36,11 +36,11 @@ and initiate a cluster:
 
 `docker swarm init`
 
-then connect to the other vm's and add them accordingly to the cluster, for test purposes you can just add only workers to the cluster. For production environment pleae consider the approprite amount of manager nodes to keep RAFT database secure and provide high availability for your Docker Swarm Cluster. 
+then connect to the other vm's and add them accordingly to the cluster, for test purposes you can just add only workers to the cluster. For production environment pleaae consider the appropriate amount of manager nodes to keep RAFT database secure and provide high availability for your Docker Swarm Cluster. 
 
 Make sure the cluster is working by executine command:
 
-# Listing of the nodes consiting Docker Swarm cluster
+# Listing of the nodes consisting Docker Swarm cluster
 `docker node ls`
 ```
 ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION
@@ -51,12 +51,12 @@ yqoycyrs9j0cb1me7cwr77764     node-3              Ready               Active    
 ```
 
 # Deploying stack 
-Than deploy a stack by executing following command:
+Than deploy a stack by executing the following command:
 
 `docker stack deploy -c docker-compose.yml es`
 
 # Validating the status of Elasticsearch cluster
-After few minutes you should be able to get cluster state and list of nodes consisting the Elasticsearch cluster. 
+After a few minutes you should be able to get cluster state and list of nodes consisting the Elasticsearch cluster. 
 
 `curl ${IP_ADDRESS}:9200/_cluster/__health?pretty`
 ```json {
@@ -92,9 +92,9 @@ After few minutes you should be able to get cluster state and list of nodes cons
 10.0.0.4  38 56 1 0.03 0.29 0.19 - - lmmnRLo
 ```
 
-Due to service mesh feature built in Docker Swarm you choose any of the IP addresses of your nodes. Docker Swarm will route the request to the approprite coordination node running on virtaul machines being a member of Docker Swarm cluster. 
+Due to service mesh feature built-in Docker Swarm you choose any of the IP addresses of your nodes. Docker Swarm will route the request to the appropriate coordination node running on virtual machines being a member of Docker Swarm cluster. 
 
-# Listing of running stack
+# Listing of running stacks
 `docker stack ls`
 NAME                SERVICES            ORCHESTRATOR
 elastic             4                   Swarm
@@ -109,7 +109,7 @@ ilh21fuh116z        elastic_data           replicated          1/1              
 x7zzznodcql9        elastic_master         replicated          2/2                 elasticsearch:6.5.2
 lbttfnzojei4        elastic_visualizer     replicated          1/1                 dockersamples/visualizer:latest   *:8080->8080/tcp
 ```
-Please note that service coordination has replicate mode set to `global`, it means that we are requesting to have Elasticsearch coordination instannce running on each of the node consisting Docker Swarm cluster.  Other services have defined replicas as an integer. 
+Please note that service coordination has to replicate mode set to `global`, it means that we are requesting to have Elasticsearch coordination instance running on each of the node consisting Docker Swarm cluster.  Other services have defined replicas as an integer. 
 
 # Listing of specific task running on a particular node
 `docker service ps elastic_coordination`
@@ -120,9 +120,9 @@ y6lfnbnavy7z        elastic_coordination.yqoycyrs9j0cb1me7cwr77764   elasticsear
 fpu2bdmnnfl2        elastic_coordination.56yflx8vy47oi3upycouzpjpj   elasticsearch:6.5.2   node-4              Running             Running 2 minutes ago                       *:9200->9200/tcp
 l8lozi001l2l        elastic_coordination.1rruyl7x9s9x43rql0x2jibx0   elasticsearch:6.5.2   node-2              Running             Running 2 minutes ago                       *:9200->9200/tcp
 ```
-# Scaling Elasticsearch cluster by adding extra data nodes
+# Scaling up Elasticsearch cluster by adding extra data nodes
 
-Scaling up Elasticsearch cluster can be achived by executing following command
+Scaling up Elasticsearch cluster can be achieved by executing the following command:
 
 `docker service scale elastic_data=3`
 
