@@ -1,6 +1,6 @@
 # Initial requirements
 
-This is example configuration which launches *Elasticsearch Cluster* on *Dock2er Swarm Cluster*. The entire setup distinguishes following services::
+This is example configuration which launches *Elasticsearch Cluster* on *Docker Swarm Cluster*. The entire setup distinguishes following services::
 
 - service with coordination Elasticsearch node role enabled which basically acts like a load balnacer
 - service with Elasticsearch master eligible nodes
