@@ -1,0 +1,10 @@
+bootstrap.memory_lock: true
+discovery.zen.minimum_master_nodes: 2
+discovery.zen.ping.unicast.hosts: master
+discovery.zen.ping_timeout: 5s
+discovery.zen.commit_timeout: 5s
+node.master: true
+node.data: false
+node.ingest: false
+cluster.name: "docker-swarm-cluster"
+network.host: 0.0.0.0

@@ -1,17 +1,14 @@
 version: "3.7"
 services:
   coordination:
-    image: elasticsearch:6.5.2
-    environment:
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-      - "bootstrap.memory_lock=true"
-      - "discovery.zen.minimum_master_nodes=2"
-      - "discovery.zen.ping.unicast.hosts=master"
-      - "node.master=false"
-      - "node.data=false"
-      - "node.ingest=false"
+    image: elasticsearch:6.5.3
+    configs: 
+      - source: es-coordination
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+      - source: jvm-options-coordination
+        target: /usr/share/elasticsearch/config/jvm.options
     networks:
-       - esnet
+      - esnet
     ports:
       - target: 9200
         published: 9200
@@ -24,43 +21,102 @@ services:
         limits:
           memory: 1G
   master:
-    image: elasticsearch:6.5.2
-    environment:
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-      - "bootstrap.memory_lock=true"
-      - "discovery.zen.minimum_master_nodes=2"
-      - "discovery.zen.ping.unicast.hosts=master"
-      - "node.master=true"
-      - "node.data=false"
-      - "node.ingest=false"
+    image: elasticsearch:6.5.3
+    configs: 
+       - source: es-master
+         target: /usr/share/elasticsearch/config/elasticsearch.yml
+       - source: jvm-options-master
+         target: /usr/share/elasticsearch/config/jvm.options
     networks:
-       - esnet
+      - esnet
     deploy:
       endpoint_mode: dnsrr
       mode: 'replicated'
-      replicas: 2
+      replicas: 3
       resources:
         limits:
           memory: 1G
-  data:
-    image: elasticsearch:6.5.2
-    environment:
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-      - "bootstrap.memory_lock=true"
-      - "discovery.zen.minimum_master_nodes=2"
-      - "discovery.zen.ping.unicast.hosts=master"
-      - "node.master=false"
-      - "node.data=true"
-      - "node.ingest=false"
+  data1:
+    image: elasticsearch:6.5.3
+    configs: 
+       - source: es-data
+         target: /usr/share/elasticsearch/config/elasticsearch.yml
+       - source: jvm-options-data
+         target: /usr/share/elasticsearch/config/jvm.options
     networks:
-       - esnet
+      - esnet
+    volumes:
+      - esdata1:/usr/share/elasticsearch/data
     deploy:
+      placement:
+       constraints: [node.hostname == node-1]
       endpoint_mode: dnsrr
       mode: 'replicated'
       replicas: 1
       resources:
         limits:
           memory: 1G
+  data2:
+    image: elasticsearch:6.5.3
+    configs: 
+       - source: es-data
+         target: /usr/share/elasticsearch/config/elasticsearch.yml
+       - source: jvm-options-data
+         target: /usr/share/elasticsearch/config/jvm.options
+    networks:
+      - esnet
+    volumes:
+      - esdata2:/usr/share/elasticsearch/data
+    deploy:
+      placement:
+        constraints: [node.hostname == node-2]
+      endpoint_mode: dnsrr
+      mode: 'replicated'
+      replicas: 1
+      resources:
+        limits:
+          memory: 1G
+  data3:
+    image: elasticsearch:6.5.3
+    configs: 
+       - source: es-data
+         target: /usr/share/elasticsearch/config/elasticsearch.yml
+       - source: jvm-options-data
+         target: /usr/share/elasticsearch/config/jvm.options
+    networks:
+      - esnet
+    volumes:
+      - esdata3:/usr/share/elasticsearch/data
+    deploy:
+      placement:
+        constraints: [node.hostname == node-3]
+      endpoint_mode: dnsrr
+      mode: 'replicated'
+      replicas: 1
+      resources:
+        limits:
+          memory: 1G
+  data4:
+    image: elasticsearch:6.5.3
+    configs: 
+       - source: es-data
+         target: /usr/share/elasticsearch/config/elasticsearch.yml
+       - source: jvm-options-data
+         target: /usr/share/elasticsearch/config/jvm.options
+    networks:
+       - esnet
+    volumes:
+      - esdata4:/usr/share/elasticsearch/data
+    deploy:
+      placement:
+        constraints: [node.hostname == node-4]
+      endpoint_mode: dnsrr
+      mode: 'replicated'
+      replicas: 1
+      resources:
+        limits:
+          memory: 1G
+
   visualizer:
     image: dockersamples/visualizer
     ports:
@@ -71,6 +127,26 @@ services:
     deploy:
       placement:
         constraints: [node.role == manager]
+
 networks:
   esnet:
     driver: overlay
+volumes: 
+  esdata1:
+  esdata2:
+  esdata3:
+  esdata4:
+
+configs: 
+  es-coordination:
+    external: true
+  es-master: 
+    external: true
+  es-data: 
+    external: true
+  jvm-options-coordination:
+    external: true
+  jvm-options-data:
+    external: true
+  jvm-options-master:
+    external: true
