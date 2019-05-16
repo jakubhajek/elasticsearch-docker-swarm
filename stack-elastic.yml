@@ -1,0 +1,374 @@
+# Maintainer: Jakub Hajek, jakub.hajek@cometari.com
+#
+# docker stack deploy -c stack-elastic.yml elastic
+#
+# The stack creates Elasticsearch cluster consiting of
+# - 3 dedicated master nodes in order to keep quorum
+# - 4 dedicated data nodes to manage CRUD,
+# - 2 coordination node acting like kind of load balancer in multi instance environments
+#
+#
+# Incoming requests to Elasticsearch REST API are managed through a coordination node.
+#
+# Kibana is deployed in Esnet and Proxy network and exposed via Traefik via HTTPS.
+# Please update the access URL to kibana (label section) and add this DNS entry to
+# allow LetsEncrypt to generate a certificate.
+#
+# Make sure that you have 4 nodes with hostnames: node-1, node-2, node-3, node-4 because
+# constraints and volume persistence refers to the hostname or update the configuration accordingly.
+#
+# Make sure to tune your VM to run Elasticsearch cluster by executing on each server:
+# sudo sysctl -w vm.max_map_count=262144
+# add --default-ulimit memlock=-1 to Dockerd
+# You can manage that by executing this command on each server consiting Swarm cluter: 
+# 
+# sudo "sed -i '/ExecStart=\/usr\/bin\/dockerd/ s/$/--default-ulimit memlock=-1/' /etc/systemd/system/docker.service.d/10-machine.conf"
+
+version: "3.7"
+
+services:
+  coordination:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.7.2
+    healthcheck:
+      test: curl -fs http://localhost:9200/_cat/health || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+    configs:
+      - source: es-coordination
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+      - source: jvm-options-coordination
+        target: /usr/share/elasticsearch/config/jvm.options
+    networks:
+      - esnet
+    ports:
+      - target: 9200
+        published: 9200
+        protocol: tcp
+        mode: host
+    deploy:
+      endpoint_mode: dnsrr
+      mode: "replicated"
+      replicas: 2
+      resources:
+        limits:
+          memory: 4G
+
+  master1:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.7.2
+    healthcheck:
+      test: curl -fs http://localhost:9200/_cat/health || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+    configs:
+      - source: es-master1
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+      - source: jvm-options-master
+        target: /usr/share/elasticsearch/config/jvm.options
+    networks:
+      - esnet
+    volumes:
+      - esmaster1:/usr/share/elasticsearch/data
+    deploy:
+      placement:
+        constraints: [ node.hostname == node-1 ]
+      endpoint_mode: dnsrr
+      mode: "replicated"
+      replicas: 1
+      resources:
+        limits:
+          memory: 4G
+
+  master2:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.7.2
+    healthcheck:
+      test: curl -fs http://localhost:9200/_cat/health || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+    configs:
+      - source: es-master2
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+      - source: jvm-options-master
+        target: /usr/share/elasticsearch/config/jvm.options
+    networks:
+      - esnet
+    volumes:
+      - esmaster2:/usr/share/elasticsearch/data
+    deploy:
+      placement:
+        constraints: [ node.hostname == node-2 ]
+      endpoint_mode: dnsrr
+      mode: "replicated"
+      replicas: 1
+      resources:
+        limits:
+          memory: 4G
+
+  master3:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.7.2
+    healthcheck:
+      test: curl -fs http://localhost:9200/_cat/health || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+    configs:
+      - source: es-master3
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+      - source: jvm-options-master
+        target: /usr/share/elasticsearch/config/jvm.options
+    networks:
+      - esnet
+    volumes:
+      - esmaster3:/usr/share/elasticsearch/data
+    deploy:
+      placement:
+        constraints: [ node.hostname == node-3 ]
+      endpoint_mode: dnsrr
+      mode: "replicated"
+      replicas: 1
+      resources:
+        limits:
+          memory: 4G
+
+  data1:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.7.2
+    healthcheck:
+      test: curl -fs http://localhost:9200/_cat/health || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+    configs:
+      - source: es-data1
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+      - source: jvm-options-data
+        target: /usr/share/elasticsearch/config/jvm.options
+    networks:
+      - esnet
+    volumes:
+      - esdata1:/usr/share/elasticsearch/data
+    deploy:
+      placement:
+        constraints: [ node.hostname == node-1 ]
+      endpoint_mode: dnsrr
+      mode: "replicated"
+      replicas: 1
+      resources:
+        limits:
+          memory: 6G
+  data2:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.7.2
+    healthcheck:
+      test: curl -fs http://localhost:9200/_cat/health || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+    configs:
+      - source: es-data2
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+      - source: jvm-options-data
+        target: /usr/share/elasticsearch/config/jvm.options
+    networks:
+      - esnet
+    volumes:
+      - esdata2:/usr/share/elasticsearch/data
+    deploy:
+      placement:
+        constraints: [ node.hostname == node-2 ]
+      endpoint_mode: dnsrr
+      mode: "replicated"
+      replicas: 1
+      resources:
+        limits:
+          memory: 6G
+  data3:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.7.2
+    healthcheck:
+      test: curl -fs http://localhost:9200/_cat/health || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+    configs:
+      - source: es-data3
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+      - source: jvm-options-data
+        target: /usr/share/elasticsearch/config/jvm.options
+    networks:
+      - esnet
+    volumes:
+      - esdata3:/usr/share/elasticsearch/data
+    deploy:
+      placement:
+        constraints: [ node.hostname == node-3 ]
+      endpoint_mode: dnsrr
+      mode: "replicated"
+      replicas: 1
+      resources:
+        limits:
+          memory: 4G
+  data4:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.7.2
+    healthcheck:
+      test: curl -fs http://localhost:9200/_cat/health || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+    configs:
+      - source: es-data4
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+      - source: jvm-options-data
+        target: /usr/share/elasticsearch/config/jvm.options
+    networks:
+      - esnet
+    volumes:
+      - esdata4:/usr/share/elasticsearch/data
+    deploy:
+      placement:
+        constraints: [ node.hostname == node-4 ]
+      endpoint_mode: dnsrr
+      mode: "replicated"
+      replicas: 1
+      resources:
+        limits:
+          memory: 6G
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:6.7.2
+    environment:
+      - "ELASTICSEARCH_URL=http://data1:9200"
+    networks:
+      - esnet
+      - proxy
+    deploy:
+      labels:
+        - "traefik.port=5601"
+        - "traefik.docker.network=proxy"
+        - "traefik.frontend.rule=Host:kibana-labs.cometari.com"
+      mode: replicated
+      replicas: 1
+      update_config:
+        failure_action: rollback
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+
+  visualizer:
+    image: dockersamples/visualizer
+    ports:
+      - "8081:8080"
+    stop_grace_period: 1m30s
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+
+  traefik:
+    image: traefik:latest
+    ports:
+      - "80:80"
+      - "8080:8080"
+      - "443:443"
+    networks:
+      - proxy
+    command:
+      - --api
+      - --docker
+      - --docker.swarmmode
+      - --docker.watch
+      - --entrypoints=Name:http Address::80 Redirect.EntryPoint:https
+      - --entrypoints=Name:https Address::443 TLS
+      - --defaultentrypoints=http,https
+      - --metrics
+      - --metrics.prometheus
+      - --acme
+      - --acme.email=kuba@cometari.com
+      - --acme.storage=/certificates/acme.json
+      - --acme.entryPoint=https
+      - --acme.httpChallenge.entryPoint=http
+      - --acme.onhostrule=true
+      - --acme.acmelogging=true
+      - --logLevel=INFO
+      - --accessLog
+    deploy:
+      placement:
+        constraints: [ node.hostname == node-1 ]
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      labels:
+        - "traefik.docker.network=proxy"
+        - "traefik.port=8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "traefik-certificates:/certificates"
+
+networks:
+  esnet:
+    driver: overlay
+    attachable: true
+    name: esnet
+  proxy:
+    driver: overlay
+    name: proxy
+
+volumes:
+  esmaster1:
+  esmaster2:
+  esmaster3:
+
+  esdata1:
+  esdata2:
+  esdata3:
+  esdata4:
+  traefik-certificates:
+
+configs:
+  es-coordination:
+    name: es-coordination
+    file: es-config/es-coordination.yml
+  es-master1:
+    name: es-master1
+    file: es-config/es-master1.yml
+  es-master2:
+    name: es-master2
+    file: es-config/es-master2.yml
+  es-master3:
+    name: es-master3
+    file: es-config/es-master3.yml
+
+  es-data1:
+    name: es-data1
+    file: es-config/es-data1.yml
+  es-data2:
+    name: es-data2
+    file: es-config/es-data2.yml
+  es-data3:
+    name: es-data3
+    file: es-config/es-data3.yml
+  es-data4:
+    name: es-data4
+    file: es-config/es-data4.yml
+
+  jvm-options-coordination:
+    name: jvm-options-coordination
+    file: es-config/jvm.coordination.options
+  jvm-options-data:
+    name: jvm-options-data 
+    file: es-config/jvm.data.options
+  jvm-options-master:
+    name: jvm-options-master
+    file: es-config/jvm.master.options

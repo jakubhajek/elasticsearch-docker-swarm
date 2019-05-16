@@ -1,10 +1,12 @@
 bootstrap.memory_lock: true
 discovery.zen.minimum_master_nodes: 2
-discovery.zen.ping.unicast.hosts: master
+discovery.zen.ping.unicast.hosts: master1, master, master3
 discovery.zen.ping_timeout: 5s
 discovery.zen.commit_timeout: 5s
 node.master: false
-node.data: false
+node.data: true
 node.ingest: false
+node.name: es-data3
 cluster.name: "docker-swarm-cluster"
 network.host: 0.0.0.0
+action.destructive_requires_name: true
