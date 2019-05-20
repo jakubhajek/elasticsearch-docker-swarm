@@ -109,7 +109,7 @@ mzj666cjkjkugfuly9z905026   jvm-options-master         3 minutes ago       3 min
 Than deploy a stack by executing the following command:
 
 ```shell 
-docker stack deploy -c docker-compose.yml es
+docker stack deploy -c stack-elastic.yml es
 ```
 
 # Validating the status of Elasticsearch cluster
