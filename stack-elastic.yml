@@ -28,7 +28,7 @@ version: "3.7"
 
 services:
   coordination:
-    image: docker.elastic.co/elasticsearch/elasticsearch:6.7.2
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.0
     healthcheck:
       test: curl -fs http://localhost:9200/_cat/health || exit 1
       interval: 30s
@@ -54,6 +54,8 @@ services:
       resources:
         limits:
           memory: 4G
+      placement:
+        constraints: [ node.hostname == mag-analysis ]
 
   master1:
     image: docker.elastic.co/elasticsearch/elasticsearch:6.7.2
@@ -74,7 +76,7 @@ services:
       - esmaster1:/usr/share/elasticsearch/data
     deploy:
       placement:
-        constraints: [ node.hostname == node-1 ]
+        constraints: [ node.hostname == mag-analysis ]
       endpoint_mode: dnsrr
       mode: "replicated"
       replicas: 1
@@ -101,7 +103,7 @@ services:
       - esmaster2:/usr/share/elasticsearch/data
     deploy:
       placement:
-        constraints: [ node.hostname == node-2 ]
+        constraints: [ node.hostname == pyspark-w1-1 ]
       endpoint_mode: dnsrr
       mode: "replicated"
       replicas: 1
@@ -128,7 +130,7 @@ services:
       - esmaster3:/usr/share/elasticsearch/data
     deploy:
       placement:
-        constraints: [ node.hostname == node-3 ]
+        constraints: [ node.hostname == pyspark-w1-2 ]
       endpoint_mode: dnsrr
       mode: "replicated"
       replicas: 1
@@ -155,7 +157,7 @@ services:
       - esdata1:/usr/share/elasticsearch/data
     deploy:
       placement:
-        constraints: [ node.hostname == node-1 ]
+        constraints: [ node.hostname == pyspark-w1-1 ]
       endpoint_mode: dnsrr
       mode: "replicated"
       replicas: 1
@@ -181,7 +183,7 @@ services:
       - esdata2:/usr/share/elasticsearch/data
     deploy:
       placement:
-        constraints: [ node.hostname == node-2 ]
+        constraints: [ node.hostname == pyspark-w1-2 ]
       endpoint_mode: dnsrr
       mode: "replicated"
       replicas: 1
@@ -207,7 +209,7 @@ services:
       - esdata3:/usr/share/elasticsearch/data
     deploy:
       placement:
-        constraints: [ node.hostname == node-3 ]
+        constraints: [ node.hostname == pyspark-worker-3 ]
       endpoint_mode: dnsrr
       mode: "replicated"
       replicas: 1
@@ -233,7 +235,7 @@ services:
       - esdata4:/usr/share/elasticsearch/data
     deploy:
       placement:
-        constraints: [ node.hostname == node-4 ]
+        constraints: [ node.hostname == mag-analysis ]
       endpoint_mode: dnsrr
       mode: "replicated"
       replicas: 1
@@ -241,89 +243,12 @@ services:
         limits:
           memory: 6G
 
-  kibana:
-    image: docker.elastic.co/kibana/kibana:6.7.2
-    environment:
-      - "ELASTICSEARCH_URL=http://data1:9200"
-    networks:
-      - esnet
-      - proxy
-    deploy:
-      labels:
-        - "traefik.port=5601"
-        - "traefik.docker.network=proxy"
-        - "traefik.frontend.rule=Host:kibana-labs.cometari.com"
-      mode: replicated
-      replicas: 1
-      update_config:
-        failure_action: rollback
-        parallelism: 1
-        delay: 10s
-      restart_policy:
-        condition: on-failure
-        delay: 10s
-        max_attempts: 3
-
-  visualizer:
-    image: dockersamples/visualizer
-    ports:
-      - "8081:8080"
-    stop_grace_period: 1m30s
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
-    deploy:
-      placement:
-        constraints: [node.role == manager]
-
-  traefik:
-    image: traefik:latest
-    ports:
-      - "80:80"
-      - "8080:8080"
-      - "443:443"
-    networks:
-      - proxy
-    command:
-      - --api
-      - --docker
-      - --docker.swarmmode
-      - --docker.watch
-      - --entrypoints=Name:http Address::80 Redirect.EntryPoint:https
-      - --entrypoints=Name:https Address::443 TLS
-      - --defaultentrypoints=http,https
-      - --metrics
-      - --metrics.prometheus
-      - --acme
-      - --acme.email=kuba@cometari.com
-      - --acme.storage=/certificates/acme.json
-      - --acme.entryPoint=https
-      - --acme.httpChallenge.entryPoint=http
-      - --acme.onhostrule=true
-      - --acme.acmelogging=true
-      - --logLevel=INFO
-      - --accessLog
-    deploy:
-      placement:
-        constraints: [ node.hostname == node-1 ]
-      mode: replicated
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-      labels:
-        - "traefik.docker.network=proxy"
-        - "traefik.port=8080"
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
-      - "traefik-certificates:/certificates"
 
 networks:
   esnet:
     driver: overlay
     attachable: true
     name: esnet
-  proxy:
-    driver: overlay
-    name: proxy
 
 volumes:
   esmaster1:
@@ -334,7 +259,6 @@ volumes:
   esdata2:
   esdata3:
   esdata4:
-  traefik-certificates:
 
 configs:
   es-coordination:
